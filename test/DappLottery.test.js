@@ -68,4 +68,122 @@ describe('DappLottery', () => {
       expect(result).to.have.lengthOf(1)
     })
   })
+
+  describe('Lucky Number Generation', () => {
+    beforeEach(async () => {
+      await contract.createLottery(title, description, image, prize, ticketPrice, expiresAt)
+    })
+    it('Should confirm lucky numbers import', async () => {
+      result = await contract.getLotteryLuckyNumbers(lotteryId)
+      expect(result).to.have.lengthOf(0)
+
+      await contract.importLuckyNumbers(lotteryId, generateLuckyNumbers(numberToGenerate))
+
+      result = await contract.getLotteryLuckyNumbers(lotteryId)
+      expect(result).to.have.lengthOf(numberToGenerate)
+    })
+  })
+
+  describe('Buying of Tickets', () => {
+    beforeEach(async () => {
+      await contract.createLottery(title, description, image, prize, ticketPrice, expiresAt)
+      await contract.importLuckyNumbers(lotteryId, generateLuckyNumbers(numberToGenerate))
+    })
+    it('Should confirm ticket purchased', async () => {
+      result = await contract.getLottery(lotteryId)
+      expect(result.participants.toNumber()).to.be.equal(0)
+
+      result = await contract.getLotteryParticipants(lotteryId)
+      expect(result).to.have.lengthOf(0)
+
+      await contract.connect(participant1).buyTicket(lotteryId, numberToGenerate - 1, {
+        value: ticketPrice,
+      })
+
+      result = await contract.getLottery(lotteryId)
+      expect(result.participants.toNumber()).to.be.equal(1)
+
+      result = await contract.getLotteryParticipants(lotteryId)
+      expect(result).to.have.lengthOf(1)
+    })
+  })
+
+  describe('Selecting Winners', () => {
+    beforeEach(async () => {
+      await contract.createLottery(title, description, image, prize, ticketPrice, expiresAt)
+      await contract.importLuckyNumbers(lotteryId, generateLuckyNumbers(numberToGenerate))
+      await contract.connect(participant1).buyTicket(lotteryId, numberToGenerate - 1, {
+        value: ticketPrice,
+      })
+
+      await contract.connect(participant2).buyTicket(lotteryId, numberToGenerate - 2, {
+        value: ticketPrice,
+      })
+
+      await contract.connect(participant3).buyTicket(lotteryId, numberToGenerate - 3, {
+        value: ticketPrice,
+      })
+      await contract.connect(participant4).buyTicket(lotteryId, numberToGenerate - 4, {
+        value: ticketPrice,
+      })
+      await contract.connect(participant5).buyTicket(lotteryId, numberToGenerate - 5, {
+        value: ticketPrice,
+      })
+    })
+    it('Should confirm random selection of winners', async () => {
+      result = await contract.getLotteryParticipants(lotteryId)
+      expect(result).to.have.lengthOf(numberToGenerate)
+
+      result = await contract.getLotteryResult(lotteryId)
+      expect(result.winners).to.have.lengthOf(0)
+
+      await contract.randomlySelectWinners(lotteryId, numberOfWinners)
+
+      result = await contract.getLotteryResult(lotteryId)
+      expect(result.winners).to.have.lengthOf(numberOfWinners)
+    })
+  })
+
+  describe('Paying Winners', () => {
+    beforeEach(async () => {
+      await contract.createLottery(title, description, image, prize, ticketPrice, expiresAt)
+      await contract.importLuckyNumbers(lotteryId, generateLuckyNumbers(numberToGenerate))
+      await contract.connect(participant1).buyTicket(lotteryId, numberToGenerate - 1, {
+        value: ticketPrice,
+      })
+
+      await contract.connect(participant2).buyTicket(lotteryId, numberToGenerate - 2, {
+        value: ticketPrice,
+      })
+
+      await contract.connect(participant3).buyTicket(lotteryId, numberToGenerate - 3, {
+        value: ticketPrice,
+      })
+      await contract.connect(participant4).buyTicket(lotteryId, numberToGenerate - 4, {
+        value: ticketPrice,
+      })
+      await contract.connect(participant5).buyTicket(lotteryId, numberToGenerate - 5, {
+        value: ticketPrice,
+      })
+    })
+    it('Should pay winner', async () => {
+      result = await contract.getLottery(lotteryId)
+      expect(result.winners.toNumber()).to.be.equal(0)
+      expect(result.drawn).to.be.equal(false)
+
+      result = await contract.getLotteryResult(lotteryId)
+      expect(result.winners).to.have.lengthOf(0)
+      expect(result.paidout).to.be.equal(false)
+
+      await contract.randomlySelectWinners(lotteryId, numberOfWinners)
+
+      result = await contract.getLottery(lotteryId)
+      expect(result.winners.toNumber()).to.be.equal(numberOfWinners)
+      expect(result.drawn).to.be.equal(true)
+
+      result = await contract.getLotteryResult(lotteryId)
+      expect(result.winners).to.have.lengthOf(numberOfWinners)
+      expect(result.paidout).to.be.equal(true)
+    })
+  })
 })
