@@ -1,8 +1,12 @@
 import Link from 'next/link'
 import { FaEthereum } from 'react-icons/fa'
 import Countdown from '@/components/Countdown'
+import { globalActions } from '@/store/globalSlices'
+import { useDispatch } from 'react-redux'
 
 const JackpotTable = ({ jackpot, luckyNumbers, participants }) => {
+  const dispatch = useDispatch()
+  const { setGeneratorModal } = globalActions
   const handlePurchase = async (luckyNumberId) => {
     console.log(luckyNumberId)
   }
@@ -25,6 +29,7 @@ const JackpotTable = ({ jackpot, luckyNumbers, participants }) => {
           <button
             className="flex flex-nowrap border py-2 px-4 rounded-full bg-amber-500
             hover:bg-rose-600 font-semibold"
+            onClick={() => dispatch(setGeneratorModal('scale-100'))}
           >
             Generate Lucky Numbers
           </button>

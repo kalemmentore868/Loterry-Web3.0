@@ -2,6 +2,7 @@ import Head from 'next/head'
 import SubHeader from '@/components/SubHeader'
 import JackpotTable from '@/components/JackpotTable'
 import { generateLottery, getPurchasedNumbers } from '@/services/fakeData'
+import { getLottery, getLuckyNumbers } from '@/services/blockchain'
 import Generator from '@/components/Generator'
 
 const Jackpot = ({ lottery, lotteryNumbers, numbersPurchased }) => {
@@ -28,9 +29,9 @@ export default Jackpot
 
 export const getServerSideProps = async (context) => {
   const { jackpotId } = context.query
-  const lottery = generateLottery(jackpotId)
+  const lottery = await getLottery(jackpotId)
   const purchasedNumbers = getPurchasedNumbers(5)
-  const lotteryNumbers = getPurchasedNumbers(5)
+  const lotteryNumbers = await getLuckyNumbers(jackpotId)
 
   return {
     props: {

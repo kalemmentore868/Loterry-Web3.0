@@ -2,8 +2,12 @@ import Link from 'next/link'
 import { FaEthereum } from 'react-icons/fa'
 import Countdown from '@/components/Countdown'
 import Identicon from 'react-identicons'
+import { globalActions } from '@/store/globalSlices'
+import { useDispatch } from 'react-redux'
 
 const ResultTable = ({ jackpot, participants, result }) => {
+  const dispatch = useDispatch()
+  const { setWinnersModal } = globalActions
   return (
     <div className="py-10 px-5 bg-slate-100">
       <div className="flex flex-col items-center justify-center text-center py-10">
@@ -26,6 +30,7 @@ const ResultTable = ({ jackpot, participants, result }) => {
           <button
             className="flex flex-nowrap border py-2 px-4 rounded-full bg-green-500
             hover:bg-rose-600 font-semibold"
+            onClick={() => dispatch(setWinnersModal('scale-100'))}
           >
             Perform Draw
           </button>

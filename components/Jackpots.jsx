@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { truncate } from '@/services/blockchain'
 
 const Jackpots = ({ jackpots }) => {
   return (
@@ -40,7 +41,9 @@ const Jackpot = ({ jackpot }) => {
       </div>
       <div className="py-5">
         <p className="font-semibold pb-2 text-green-300">{jackpot.title}</p>
-        <p className="text-sm leading-5 text-gray-500">{jackpot.description}</p>
+        <p className="text-sm leading-5 text-gray-500">
+          {truncate(jackpot.description, 100, 0, 103)}
+        </p>
       </div>
       <Link
         href={'/jackpots/' + jackpot.id}

@@ -2,6 +2,8 @@ import Head from 'next/head'
 import SubHeader from '@/components/SubHeader'
 import { useState } from 'react'
 import { useRouter } from 'next/router'
+import { createJackpot } from '@/services/blockchain'
+import { toast } from 'react-toastify'
 
 const Create = () => {
   const [title, setTitle] = useState('')
@@ -25,9 +27,22 @@ const Create = () => {
       expiresAt: new Date(expiresAt).getTime(),
     }
 
-    console.log(params)
-    onReset()
-    router.push('/')
+    await toast.promise(
+      new Promise(async (resolve, reject) => {
+        await createJackpot(params)
+          .then(() => {
+            router.push('/')
+            onReset()
+            resolve()
+          })
+          .catch(() => reject())
+      }),
+      {
+        pending: 'Approve transaction...',
+        success: 'Lottery created successfully 👌',
+        error: 'Encountered error 🤯',
+      }
+    )
   }
 
   const onReset = () => {
