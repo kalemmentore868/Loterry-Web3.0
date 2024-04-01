@@ -4,7 +4,8 @@ import { globalActions } from '@/store/globalSlices'
 import address from '@/artifacts/contractAddress.json'
 import abi from '@/artifacts/contracts/DappLottery.sol/DappLottery.json'
 
-const { setWallet } = globalActions
+const { setWallet, setPurchasedNumbers, setLuckyNumbers, setJackpot, setParticipants, setResult } =
+  globalActions
 const contractAddress = address.address
 const contractAbi = abi.abi
 
@@ -77,6 +78,59 @@ const getLottery = async (id) => {
   return structureLotteries([lottery])[0]
 }
 
+const getLuckyNumbers = async (id) => {
+  const contract = await ssrEthereumContract()
+  const luckyNumbers = await contract.getLotteryLuckyNumbers(id)
+  return luckyNumbers
+}
+
+const getPurchasedNumbers = async (id) => {
+  const contract = await ssrEthereumContract()
+  const participants = await contract.getLotteryParticipants(id)
+  return structuredNumbers(participants)
+}
+
+const getParticipants = async (id) => {
+  const contract = await ssrEthereumContract()
+  const participants = await contract.getLotteryParticipants(id)
+  return structuredParticipants(participants)
+}
+
+const getLotteryResult = async (id) => {
+  const contract = await ssrEthereumContract()
+  const lotterResult = await contract.getLotteryResult(id)
+  return structuredResult(lotterResult)
+}
+
+const structuredNumbers = (participants) => {
+  const purchasedNumbers = []
+
+  for (let i = 0; i < participants.length; i++) {
+    const purchasedNumber = participants[i][1]
+    purchasedNumbers.push(purchasedNumber)
+  }
+
+  return purchasedNumbers
+}
+
+const structuredResult = (result) => {
+  const LotteryResult = {
+    id: Number(result[0]),
+    completed: result[1],
+    paidout: result[2],
+    timestamp: Number(result[3]),
+    sharePerWinner: fromWei(result[4] || 0),
+    winners: [],
+  }
+
+  for (let i = 0; i < result[5]?.length; i++) {
+    const winner = result[5][i][1]
+    LotteryResult.winners.push(winner)
+  }
+
+  return LotteryResult
+}
+
 const createJackpot = async ({ title, description, imageUrl, prize, ticketPrice, expiresAt }) => {
   try {
     if (!ethereum) return reportError('Please install Metamask!')
@@ -100,12 +154,6 @@ const createJackpot = async ({ title, description, imageUrl, prize, ticketPrice,
   }
 }
 
-const getLuckyNumbers = async (id) => {
-  const contract = await ssrEthereumContract()
-  const luckyNumbers = await contract.getLotteryLuckyNumbers(id)
-  return luckyNumbers
-}
-
 const exportLuckyNumbers = async (id, luckyNumbers) => {
   try {
     if (!ethereum) return reportError('Please install Metamask')
@@ -117,8 +165,8 @@ const exportLuckyNumbers = async (id, luckyNumbers) => {
     })
     tx.wait()
 
-    // const lotteryLuckyNumbers = await getLuckyNumbers(id)
-    // store.dispatch(setLuckyNumbers(lotteryLuckyNumbers))
+    const lotteryLuckyNumbers = await getLuckyNumbers(id)
+    store.dispatch(setLuckyNumbers(lotteryLuckyNumbers))
   } catch (error) {
     reportError(error)
   }
@@ -148,6 +196,29 @@ const buyTicket = async (id, luckyNumberId, ticketPrice) => {
   }
 }
 
+const performDraw = async (id, numberOfWinners) => {
+  try {
+    if (!ethereum) return reportError('Please install Metamask')
+    const wallet = store.getState().globalStates.wallet
+    const contract = await csrEthereumContract()
+
+    tx = await contract.randomlySelectWinners(id, numberOfWinners, {
+      from: wallet,
+    })
+    tx.wait()
+
+    const lotteryParticipants = await getParticipants(id)
+    const lottery = await getLottery(id)
+    const result = await getLotteryResult(id)
+
+    store.dispatch(setParticipants(lotteryParticipants))
+    store.dispatch(setJackpot(lottery))
+    store.dispatch(setResult(result))
+  } catch (error) {
+    reportError(error)
+  }
+}
+
 const structureLotteries = (lotteries) =>
   lotteries.map((lottery) => ({
     id: Number(lottery.id),
@@ -163,6 +234,13 @@ const structureLotteries = (lotteries) =>
     winners: Number(lottery.winners),
     participants: Number(lottery.participants),
     drawn: lottery.drawn,
+  }))
+
+const structuredParticipants = (participants) =>
+  participants.map((participant) => ({
+    account: participant[0].toLowerCase(),
+    lotteryNumber: participant[1],
+    paid: participant[2],
   }))
 
 const formatDate = (timestamp) => {
@@ -232,4 +310,8 @@ export {
   generateLuckyNumbers,
   getLuckyNumbers,
   buyTicket,
+  getPurchasedNumbers,
+  getParticipants,
+  performDraw,
+  getLotteryResult,
 }

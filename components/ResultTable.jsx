@@ -3,11 +3,19 @@ import { FaEthereum } from 'react-icons/fa'
 import Countdown from '@/components/Countdown'
 import Identicon from 'react-identicons'
 import { globalActions } from '@/store/globalSlices'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
+import { toast } from 'react-toastify'
 
 const ResultTable = ({ jackpot, participants, result }) => {
   const dispatch = useDispatch()
   const { setWinnersModal } = globalActions
+  const { wallet } = useSelector((states) => states.globalStates)
+
+  const onDraw = () => {
+    if (jackpot.expiresAt > Date.now()) return toast.warning('Still counting down')
+    dispatch(setWinnersModal('scale-100'))
+  }
+
   return (
     <div className="py-10 px-5 bg-slate-100">
       <div className="flex flex-col items-center justify-center text-center py-10">
@@ -27,13 +35,15 @@ const ResultTable = ({ jackpot, participants, result }) => {
       <div className="flex flex-col justify-center items-center space-y-4 mb-6">
         {jackpot?.expiresAt ? <Countdown timestamp={jackpot?.expiresAt} /> : null}
         <div className="flex justify-center items-center space-x-2">
-          <button
-            className="flex flex-nowrap border py-2 px-4 rounded-full bg-green-500
+          {wallet.toLowerCase() == jackpot?.owner ? (
+            <button
+              onClick={onDraw}
+              className="flex flex-nowrap border py-2 px-4 rounded-full bg-green-500
             hover:bg-rose-600 font-semibold"
-            onClick={() => dispatch(setWinnersModal('scale-100'))}
-          >
-            Perform Draw
-          </button>
+            >
+              Perform Draw
+            </button>
+          ) : null}
 
           <Link
             href={`/jackpots/` + jackpot.id}
@@ -71,7 +81,8 @@ const ResultTable = ({ jackpot, participants, result }) => {
                   <p className="text-slate-500">{participant.lotteryNumber}</p>
                   {result?.winners?.includes(participant.lotteryNumber) ? (
                     <p className="text-green-500 flex justify-start items-center">
-                      + <FaEthereum /> result?.sharePerWinner {' winner'}
+                      + <FaEthereum /> {result?.sharePerWinner}
+                      {' winner'}
                     </p>
                   ) : (
                     <p className="text-red-500 flex justify-start items-center">

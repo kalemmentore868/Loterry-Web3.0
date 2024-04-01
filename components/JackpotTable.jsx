@@ -2,14 +2,42 @@ import Link from 'next/link'
 import { FaEthereum } from 'react-icons/fa'
 import Countdown from '@/components/Countdown'
 import { globalActions } from '@/store/globalSlices'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
+import { toast } from 'react-toastify'
+import { useRouter } from 'next/router'
+import { buyTicket } from '@/services/blockchain'
 
 const JackpotTable = ({ jackpot, luckyNumbers, participants }) => {
+  const router = useRouter()
+  const { jackpotId } = router.query
   const dispatch = useDispatch()
   const { setGeneratorModal } = globalActions
+  const { wallet } = useSelector((states) => states.globalStates)
+
   const handlePurchase = async (luckyNumberId) => {
-    console.log(luckyNumberId)
+    if (!wallet) return toast.warning('Connect your wallet')
+
+    await toast.promise(
+      new Promise(async (resolve, reject) => {
+        await buyTicket(jackpotId, luckyNumberId, jackpot?.ticketPrice)
+          .then(async () => {
+            resolve()
+          })
+          .catch(() => reject())
+      }),
+      {
+        pending: 'Approve transaction...',
+        success: 'Ticket purchased successfully 👌',
+        error: 'Encountered error 🤯',
+      }
+    )
   }
+
+  const onGenerate = () => {
+    if (luckyNumbers.length > 0) return toast.warning('Already generated')
+    dispatch(setGeneratorModal('scale-100'))
+  }
+
   return (
     <div className="py-10 px-5 bg-slate-100">
       <div className="flex flex-col items-center justify-center text-center py-10">
@@ -26,16 +54,19 @@ const JackpotTable = ({ jackpot, luckyNumbers, participants }) => {
       <div className="flex flex-col justify-center items-center space-y-4 mb-6">
         {jackpot?.expiresAt ? <Countdown timestamp={jackpot?.expiresAt} /> : null}
         <div className="flex justify-center items-center space-x-2">
-          <button
-            className="flex flex-nowrap border py-2 px-4 rounded-full bg-amber-500
+          {wallet?.toLowerCase() == jackpot?.owner ? (
+            <button
+              disabled={Date.now() > jackpot?.expiresAt}
+              onClick={onGenerate}
+              className="flex flex-nowrap border py-2 px-4 rounded-full bg-amber-500
             hover:bg-rose-600 font-semibold"
-            onClick={() => dispatch(setGeneratorModal('scale-100'))}
-          >
-            Generate Lucky Numbers
-          </button>
+            >
+              Generate Lucky Numbers
+            </button>
+          ) : null}
 
           <Link
-            href={`/results/` + 1}
+            href={`/results/` + jackpot?.id}
             className="flex flex-nowrap border py-2 px-4 rounded-full bg-[#0c2856]
             hover:bg-[#1a396c] cursor-pointer font-semibold text-white"
           >
@@ -73,8 +104,12 @@ const JackpotTable = ({ jackpot, luckyNumbers, participants }) => {
                 <td className="px-4 py-2 font-semibold">{luckyNumber}</td>
                 <td className="px-4 py-2 font-semibold">
                   <button
-                    onClick={() => handlePurchase(luckyNumber)}
-                    className={`bg-black hover:bg-rose-600 text-white text-sm py-2 px-4 rounded-full `}
+                    onClick={() => handlePurchase(i)}
+                    className={`bg-black ${
+                      participants.includes(luckyNumber)
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:bg-rose-600'
+                    } text-white text-sm py-2 px-4 rounded-full`}
                   >
                     BUY NOW
                   </button>
