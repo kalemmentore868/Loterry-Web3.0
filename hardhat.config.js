@@ -8,6 +8,10 @@ module.exports = {
     localhost: {
       url: 'http://127.0.0.1:8545',
     },
+    sepolia: {
+      url: process.env.SEPOLIA_RPC,
+      accounts: [process.env.DEPLOYER_KEY],
+    },
   },
   solidity: {
     version: '0.8.17',

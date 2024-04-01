@@ -24,7 +24,7 @@ const csrEthereumContract = async () => {
 }
 
 const ssrEthereumContract = async () => {
-  const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545/')
+  const provider = new ethers.providers.JsonRpcProvider(process.env.NEXT_APP_RPC_URL)
   const wallet = ethers.Wallet.createRandom()
   const signer = provider.getSigner(wallet.address)
   const contract = new ethers.Contract(contractAddress, contractAbi, signer)
